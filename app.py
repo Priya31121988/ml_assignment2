@@ -9,211 +9,294 @@ Original file is located at
 
 pip install ucimlrepo
 
-# ============================================================
-# Breast Cancer Classification Project
-# ============================================================
+!pip install streamlit
 
-import os
-import joblib
+import streamlit as st
 import pandas as pd
-import numpy as np
-
-from ucimlrepo import fetch_ucirepo
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
+import joblib
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from sklearn.metrics import (
     accuracy_score,
-    roc_auc_score,
     precision_score,
     recall_score,
     f1_score,
-    matthews_corrcoef
+    roc_auc_score,
+    matthews_corrcoef,
+    confusion_matrix,
+    classification_report
 )
 
-# ============================================================
-# Create model directory
-# ============================================================
+# ======================================================
+# PAGE CONFIG
+# ======================================================
 
-os.makedirs("model", exist_ok=True)
+st.set_page_config(
+    page_title="Breast Cancer Classification",
+    page_icon="🩺",
+    layout="wide"
+)
 
-# ============================================================
-# Load Dataset
-# ============================================================
+st.title("🩺 Breast Cancer Classification System")
+st.write(
+    "Upload a test dataset and evaluate any of the trained machine learning models."
+)
 
-print("=" * 60)
-print("Loading Breast Cancer Wisconsin Diagnostic Dataset")
-print("=" * 60)
+# ======================================================
+# MODEL FILES
+# ======================================================
 
-breast_cancer_wisconsin_diagnostic = fetch_ucirepo(id=17)
-
-X = breast_cancer_wisconsin_diagnostic.data.features
-y = breast_cancer_wisconsin_diagnostic.data.targets
-
-print("\nDataset Shape:")
-print("Features:", X.shape)
-print("Target:", y.shape)
-
-# ============================================================
-# Encode Target Variable
-# B -> 0
-# M -> 1
-# ============================================================
-
-encoder = LabelEncoder()
-y = encoder.fit_transform(y.values.ravel())
-
-# ============================================================
-# Train-Test Split
-# ============================================================
-
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.20, random_state=42, stratify=y)
-
-
-# ============================================================
-# Save Test Data
-# Required for Streamlit App
-# ============================================================
-
-test_df = X_test.copy()
-test_df["target"] = y_test
-
-test_df.to_csv("test_data.csv", index=False)
-
-print("\nTest data saved as test_data.csv")
-
-# ============================================================
-# Feature Scaling
-# ============================================================
-
-scaler = StandardScaler()
-
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
-
-joblib.dump(scaler, "model/scaler.pkl")
-
-print("Scaler saved.")
-
-# ============================================================
-# Define Models
-# ============================================================
-
-models = {
-    "Logistic Regression":
-    LogisticRegression(max_iter=5000, random_state=42),
-
-    "Decision Tree":
-    DecisionTreeClassifier(random_state=42),
-
-    "KNN":
-    KNeighborsClassifier(n_neighbors=5),
-
-    "Naive Bayes":
-    GaussianNB(),
-
-    "Support Vector Machine":
-    SVC(probability=True, random_state=42)
+MODEL_FILES = {
+    "Logistic Regression": "model/logistic_regression.pkl",
+    "Decision Tree": "model/decision_tree.pkl",
+    "KNN": "model/knn.pkl",
+    "Naive Bayes": "model/naive_bayes.pkl",
+    "Support Vector Machine": "model/support_vector_machine.pkl"
 }
 
-# ============================================================
-# Evaluation Function
-# ============================================================
+# Models requiring scaling
+SCALED_MODELS = [
+    "Logistic Regression",
+    "KNN",
+    "Support Vector Machine"
+]
 
-def evaluate_model(model, X_test, y_test):
+# ======================================================
+# MODEL SELECTION
+# ======================================================
 
-    y_pred = model.predict(X_test)
-    y_prob = model.predict_proba(X_test)[:, 1]
-
-    accuracy = accuracy_score(y_test, y_pred)
-    auc = roc_auc_score(y_test, y_prob)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
-    mcc = matthews_corrcoef(y_test, y_pred)
-
-    return [accuracy, auc, precision, recall, f1, mcc]
-
-# ============================================================
-# Train Models and Save
-# ============================================================
-
-results = []
-
-for model_name, model in models.items():
-
-    print(f"\nTraining {model_name}...")
-
-    if model_name in [
-        "Logistic Regression",
-        "KNN",
-        "Support Vector Machine"
-    ]:
-
-        model.fit(X_train_scaled, y_train)
-
-        scores = evaluate_model(model, X_test_scaled, y_test)
-
-    else:
-
-        model.fit(X_train, y_train)
-
-        scores = evaluate_model(model, X_test, y_test)
-
-    results.append([model_name] + scores)
-
-    filename = model_name.lower().replace(" ", "_") + ".pkl"
-
-    joblib.dump(model, f"model/{filename}")
-
-    print(f"{model_name} saved successfully.")
-
-# ============================================================
-# Result Comparison Table
-# ============================================================
-
-results_df = pd.DataFrame(results, columns=["ML Model Name", "Accuracy", "AUC",
-        "Precision", "Recall", "F1 Score", "MCC"]
+selected_model = st.selectbox(
+    "Select Model",
+    list(MODEL_FILES.keys())
 )
 
-results_df = results_df.round(4)
+# ======================================================
+# FILE UPLOAD
+# ======================================================
 
-print("\n")
-print("=" * 90)
-print("MODEL COMPARISON TABLE")
-print("=" * 90)
+uploaded_file = st.file_uploader(
+    "Upload Test CSV File",
+    type=["csv"]
+)
 
-print(results_df)
+# ======================================================
+# PROCESS DATA
+# ======================================================
 
-# ============================================================
-# Identify Best Model
-# ============================================================
+if uploaded_file is not None:
 
-best_model = results_df.loc[results_df["Accuracy"].idxmax()]
+    try:
 
-print("\n")
-print("=" * 60)
-print("WINNER MODEL")
-print("=" * 60)
+        df = pd.read_csv(uploaded_file)
 
-print(f"Best Model: {best_model['ML Model Name']}")
-print(f"Accuracy: {best_model['Accuracy']}")
+        st.subheader("Uploaded Dataset")
+        st.dataframe(df.head())
 
-# ============================================================
-# Save Comparison Results
-# ============================================================
+        # ----------------------------------------------
+        # Check target column
+        # ----------------------------------------------
 
-results_df.to_csv("model_comparison_results.csv", index=False)
+        if "target" not in df.columns:
+            st.error(
+                "The uploaded CSV must contain a 'target' column."
+            )
+            st.stop()
 
-print("\nComparison table saved as:")
-print("model_comparison_results.csv")
-print("\nProject Completed Successfully!")
+        X = df.drop("target", axis=1)
+        y = df["target"]
 
+        # ----------------------------------------------
+        # Load model
+        # ----------------------------------------------
+
+        model = joblib.load(
+            MODEL_FILES[selected_model]
+        )
+
+        # ----------------------------------------------
+        # Scale if required
+        # ----------------------------------------------
+
+        if selected_model in SCALED_MODELS:
+
+            scaler = joblib.load(
+                "model/scaler.pkl"
+            )
+
+            X_input = scaler.transform(X)
+
+        else:
+            X_input = X
+
+        # ----------------------------------------------
+        # Predictions
+        # ----------------------------------------------
+
+        y_pred = model.predict(X_input)
+
+        if hasattr(model, "predict_proba"):
+            y_prob = model.predict_proba(X_input)[:, 1]
+        else:
+            y_prob = y_pred
+
+        # ----------------------------------------------
+        # Metrics
+        # ----------------------------------------------
+
+        accuracy = accuracy_score(y, y_pred)
+
+        precision = precision_score(
+            y,
+            y_pred
+        )
+
+        recall = recall_score(
+            y,
+            y_pred
+        )
+
+        f1 = f1_score(
+            y,
+            y_pred
+        )
+
+        auc = roc_auc_score(
+            y,
+            y_prob
+        )
+
+        mcc = matthews_corrcoef(
+            y,
+            y_pred
+        )
+
+        # ----------------------------------------------
+        # Display Metrics
+        # ----------------------------------------------
+
+        st.subheader("📊 Evaluation Metrics")
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Accuracy",
+            f"{accuracy:.4f}"
+        )
+
+        col2.metric(
+            "AUC",
+            f"{auc:.4f}"
+        )
+
+        col3.metric(
+            "Precision",
+            f"{precision:.4f}"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Recall",
+            f"{recall:.4f}"
+        )
+
+        col2.metric(
+            "F1 Score",
+            f"{f1:.4f}"
+        )
+
+        col3.metric(
+            "MCC",
+            f"{mcc:.4f}"
+        )
+
+        # ----------------------------------------------
+        # Confusion Matrix
+        # ----------------------------------------------
+
+        st.subheader("📈 Confusion Matrix")
+
+        cm = confusion_matrix(
+            y,
+            y_pred
+        )
+
+        fig, ax = plt.subplots(figsize=(5, 4))
+
+        sns.heatmap(
+            cm,
+            annot=True,
+            fmt="d",
+            cmap="Blues",
+            ax=ax
+        )
+
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Actual")
+        ax.set_title(f"{selected_model} Confusion Matrix")
+
+        st.pyplot(fig)
+
+        # ----------------------------------------------
+        # Classification Report
+        # ----------------------------------------------
+
+        st.subheader("📋 Classification Report")
+
+        report = classification_report(
+            y,
+            y_pred
+        )
+
+        st.text(report)
+
+        # ----------------------------------------------
+        # Download Predictions
+        # ----------------------------------------------
+
+        result_df = df.copy()
+        result_df["prediction"] = y_pred
+
+        csv = result_df.to_csv(
+            index=False
+        ).encode("utf-8")
+
+        st.download_button(
+            label="⬇ Download Predictions",
+            data=csv,
+            file_name="predictions.csv",
+            mime="text/csv"
+        )
+
+    except Exception as e:
+
+        st.error(f"Error: {e}")
+
+# ======================================================
+# SIDEBAR
+# ======================================================
+
+st.sidebar.header("Project Information")
+
+st.sidebar.info(
+    """
+    Dataset:
+    Breast Cancer Wisconsin Diagnostic Dataset
+
+    Models:
+    • Logistic Regression
+    • Decision Tree
+    • KNN
+    • Naive Bayes
+    • Support Vector Machine
+
+    Metrics:
+    • Accuracy
+    • AUC
+    • Precision
+    • Recall
+    • F1 Score
+    • MCC
+    """
+)
