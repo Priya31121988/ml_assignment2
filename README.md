@@ -71,6 +71,14 @@ https://github.com/Priya31121988/ml_assignment2/
 
 ---
 
+## Streamlit Web Application
+
+The deployed Streamlit application can be accessed using the following link:
+
+🔗 **Streamlit App:**  
+https://mlassignment2-breast-cancer-classification.streamlit.app/
+
+---
 ## Conclusion
 
 All five machine learning models performed well on the Breast Cancer Wisconsin Diagnostic Dataset, achieving accuracies above 94%.
