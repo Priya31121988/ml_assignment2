@@ -50,11 +50,11 @@ https://github.com/Priya31121988/ml_assignment2/
 
 | ML Model Name | Accuracy | AUC Score | Precision | Recall | F1 Score | MCC |
 |--------------|----------|----------|----------|----------|----------|----------|
-| Logistic Regression | 0.9824 | 0.9974 | 0.9951 | 0.9575 | 0.9760 | 0.9626 |
-| Decision Tree | 0.9859 | 0.9850 | 0.9811 | 0.9811 | 0.9811 | 0.9699 |
-| KNN | 0.9736 | 0.9949 | 0.9900 | 0.9387 | 0.9637 | 0.9438 |
-| Naive Bayes | 0.9420 | 0.9894 | 0.9543 | 0.8868 | 0.9193 | 0.8756 |
-| Support Vector Machine (SVM) | 0.9842 | 0.9974 | 1.0000 | 0.9575 | 0.9783 | 0.9664 |
+| Support Vector Machine (SVM) | 0.9737 | 0.9947 | 1.0000 | 0.9286 | 0.9630 | 0.9442 |
+| Logistic Regression | 0.9649 | 0.9960 | 0.9750 | 0.9286 | 0.9512 | 0.9245 |
+| K-Nearest Neighbors (KNN) | 0.9561 | 0.9823 | 0.9744 | 0.9048 | 0.9383 | 0.9058 |
+| Gaussian Naive Bayes | 0.9386 | 0.9934 | 1.0000 | 0.8333 | 0.9091 | 0.8715 |
+| Decision Tree Classifier | 0.9298 | 0.9246 | 0.9048 | 0.9048 | 0.9048 | 0.8492 |
 
 ---
 
@@ -62,12 +62,12 @@ https://github.com/Priya31121988/ml_assignment2/
 
 | ML Model Name | Observation |
 |---------------|-------------|
-| Logistic Regression | Excellent baseline model with strong accuracy and AUC performance. |
-| Decision Tree | Achieved the highest Accuracy, Recall, F1 Score, and MCC. |
-| KNN | Good performance after feature scaling with competitive results. |
-| Naive Bayes | Fast and efficient but achieved the lowest overall performance. |
-| Support Vector Machine | Achieved perfect Precision (100%) and the highest AUC score. |
-| **Overall Winner** | **Decision Tree Classifier** achieved the best overall balance across Accuracy, Recall, F1 Score, and MCC. |
+| Support Vector Machine (SVM) | Achieved the highest Accuracy (97.37%) and MCC (0.9442), demonstrating the best overall classification performance. It also achieved perfect Precision (100%), indicating no false positive predictions. |
+| Logistic Regression | Delivered strong and consistent performance with high AUC Score (0.9960) and Accuracy (96.49%), making it an effective baseline classifier. |
+| K-Nearest Neighbors (KNN) | Produced competitive results with 95.61% Accuracy and balanced Precision and Recall after feature scaling. |
+| Gaussian Naive Bayes | Achieved perfect Precision (100%) and a high AUC Score (0.9934), but lower Recall (83.33%), indicating more missed positive cases. |
+| Decision Tree Classifier | Delivered the lowest overall performance among the evaluated models, with Accuracy of 92.98% and MCC of 0.8492. |
+| **Overall Winner** | **Support Vector Machine (SVM)** achieved the best overall performance with the highest Accuracy, strongest MCC score, perfect Precision, and excellent AUC score. |
 
 ---
 
@@ -75,19 +75,16 @@ https://github.com/Priya31121988/ml_assignment2/
 
 The deployed Streamlit application can be accessed using the following link:
 
-🔗 **Streamlit App:**  
-https://mlassignment2-breast-cancer-classification.streamlit.app/
-
+🔗 **Streamlit App:**
+https://ml-assignment2-breast-cancer-diagnosis.streamlit.app/
 ---
 ## Conclusion
 
-All five machine learning models performed well on the Breast Cancer Wisconsin Diagnostic Dataset, achieving accuracies above 94%.
+This project implemented and compared five machine learning classification algorithms on the Breast Cancer Wisconsin Diagnostic Dataset.
 
-The **Decision Tree Classifier** was the best-performing model overall, achieving:
+All models achieved strong predictive performance, with classification accuracies exceeding 92%. Among the evaluated algorithms, the **Support Vector Machine (SVM)** emerged as the best-performing model, achieving the highest Accuracy (**97.37%**), highest MCC (**0.9442**), perfect Precision (**100%**), and an excellent AUC Score (**0.9947**).
 
-- Accuracy: **98.59%**
-- Recall: **98.11%**
-- F1 Score: **98.11%**
-- MCC: **0.9699**
+**Logistic Regression** and **KNN** also demonstrated strong performance and reliable classification results. **Gaussian Naive Bayes** achieved perfect Precision but exhibited lower Recall, while the **Decision Tree Classifier** produced the lowest overall performance among the evaluated models.
 
-Although **SVM** achieved perfect Precision (100%) and an excellent AUC Score (0.9974), the **Decision Tree Classifier** provided the most balanced performance across all evaluation metrics and was selected as the overall winner for this dataset.
+Based on all evaluation metrics, the **Support Vector Machine (SVM)** was selected as the overall winner for this dataset due to its superior accuracy, balanced predictive capability, and excellent ability to distinguish between malignant and benign tumors.
+
