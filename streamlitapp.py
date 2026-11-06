@@ -395,14 +395,11 @@ cm = confusion_matrix(
 )
 
 cm_df = pd.DataFrame(
-    cm,
-    index=["Actual B", "Actual M"],
-    columns=["Predicted B", "Predicted M"]
+    cm, index=["Actual B", "Actual M"], columns=["Predicted B", "Predicted M"]
 )
 
 st.dataframe(
-    cm_df,
-    width="stretch"
+    cm_df, width="stretch"
 )
 
 # ====================================================
