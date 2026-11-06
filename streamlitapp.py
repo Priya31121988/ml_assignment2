@@ -88,6 +88,23 @@ with st.sidebar:
         "Select Model",
         list(model_files.keys())
     )
+    st.subheader("Sample Test Dataset")
+
+    st.link_button(
+        "📥 Download test_data.csv",
+        "https://raw.githubusercontent.com/Priya31121988/ml_assignment2/main/test_data.csv"
+    )
+
+    st.info(
+        """
+        Steps:
+
+        1. Download test_data.csv
+        2. Upload the file using the uploader above
+        3. Select a model
+        4. View evaluation metrics and predictions
+        """
+    )
 
 # ====================================================
 # HEADER
