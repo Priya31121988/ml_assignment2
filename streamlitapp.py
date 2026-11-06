@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import pickle
 
 from sklearn.metrics import (
@@ -14,18 +13,18 @@ from sklearn.metrics import (
     classification_report
 )
 
-# ====================================================
+# =====================================================
 # PAGE CONFIG
-# ====================================================
+# =====================================================
 st.set_page_config(
-    page_title="Breast Cancer Prediction",
+    page_title="Breast Cancer Diagnosis Prediction",
     page_icon="🎗️",
     layout="wide"
 )
 
-# ====================================================
-# CSS
-# ====================================================
+# =====================================================
+# CUSTOM CSS
+# =====================================================
 st.markdown("""
 <style>
 
@@ -33,28 +32,12 @@ st.markdown("""
     background-color:#dff0d8;
 }
 
-.metric-card{
-    background:white;
-    padding:15px;
-    border-left:6px solid #34c759;
-    border-radius:10px;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
-# ====================================================
-# LOAD SCALER
-# ====================================================
-try:
-    with open("models/scaler.pkl", "rb") as f:
-        scaler = pickle.load(f)
-except:
-    scaler = None
-
-# ====================================================
+# =====================================================
 # MODEL PATHS
-# ====================================================
+# =====================================================
 model_files = {
     "Logistic Regression":
         "models/logistic_regression.pkl",
@@ -72,22 +55,29 @@ model_files = {
         "models/svm.pkl"
 }
 
-# ====================================================
+# =====================================================
+# LOAD SCALER
+# =====================================================
+try:
+    with open("models/scaler.pkl", "rb") as f:
+        scaler = pickle.load(f)
+except Exception:
+    scaler = None
+
+# =====================================================
 # SIDEBAR
-# ====================================================
+# =====================================================
 with st.sidebar:
 
-    st.title("Breast Cancer ML Models")
+    st.title("Model Evaluation")
 
     uploaded_file = st.file_uploader(
-        "Upload Test CSV",
+        "Upload Custom Test CSV (Optional)",
         type=["csv"]
     )
 
-    selected_model = st.selectbox(
-        "Select Model",
-        list(model_files.keys())
-    )
+    st.markdown("---")
+
     st.subheader("Sample Test Dataset")
 
     st.link_button(
@@ -95,77 +85,90 @@ with st.sidebar:
         "https://raw.githubusercontent.com/Priya31121988/ml_assignment2/main/test_data.csv"
     )
 
-    st.info(
-        """
-        Steps:
-
-        1. Download test_data.csv
-        2. Upload the file using the uploader above
-        3. Select a model
-        4. View evaluation metrics and predictions
-        """
+    st.caption(
+        "Download and upload test_data.csv to evaluate the models."
     )
 
-# ====================================================
+    st.markdown("---")
+
+    selected_model = st.selectbox(
+        "Select Model",
+        list(model_files.keys())
+    )
+
+# =====================================================
 # HEADER
-# ====================================================
+# =====================================================
 st.title("🎗️ Breast Cancer Diagnosis Prediction")
 
 st.write(
     """
-    Compare Logistic Regression, Decision Tree,
-    KNN, Naive Bayes and SVM on uploaded data.
+    This application evaluates five trained machine learning models
+    using the Breast Cancer Wisconsin Diagnostic Dataset.
     """
 )
 
-# ====================================================
-# SUMMARY
-# ====================================================
+# =====================================================
+# SUMMARY CARDS
+# =====================================================
 c1, c2, c3 = st.columns(3)
 
-c1.metric(
-    "Models",
-    "5"
-)
-
-c2.metric(
-    "Features",
-    "30"
-)
-
-c3.metric(
-    "Classification",
-    "Binary"
-)
+c1.metric("Models", "5")
+c2.metric("Features", "30")
+c3.metric("Problem Type", "Binary")
 
 st.divider()
 
-# ====================================================
-# UPLOAD CHECK
-# ====================================================
-if uploaded_file is None:
+# =====================================================
+# LOAD DATASET
+# =====================================================
+try:
 
-    st.info(
-        "Upload a CSV file to begin model evaluation."
+    if uploaded_file is not None:
+
+        df = pd.read_csv(uploaded_file)
+
+        st.success(
+            "Using uploaded dataset."
+        )
+
+    else:
+
+        df = pd.read_csv("test_data.csv")
+
+        st.info(
+            "Using default test_data.csv."
+        )
+
+except Exception as e:
+
+    st.error(
+        f"Unable to load dataset.\n\n{e}"
     )
 
     st.stop()
 
-# ====================================================
-# READ CSV
-# ====================================================
-df = pd.read_csv(uploaded_file)
-
-st.subheader("Uploaded Dataset")
+# =====================================================
+# DATASET PREVIEW
+# =====================================================
+st.subheader("Dataset Preview")
 
 st.dataframe(
     df.head(),
     width="stretch"
 )
 
-# ====================================================
+st.write(
+    f"Rows: {df.shape[0]}"
+)
+
+st.write(
+    f"Columns: {df.shape[1]}"
+)
+
+# =====================================================
 # VALIDATE TARGET
-# ====================================================
+# =====================================================
 if "Diagnosis" not in df.columns:
 
     st.error(
@@ -174,9 +177,9 @@ if "Diagnosis" not in df.columns:
 
     st.stop()
 
-# ====================================================
-# FEATURES/TARGET
-# ====================================================
+# =====================================================
+# FEATURES / TARGET
+# =====================================================
 X_test = df.drop(
     columns=["Diagnosis"]
 )
@@ -193,35 +196,39 @@ y_test = (
     .astype(str)
     .str.strip()
     .str.upper()
-)
-
-y_test = y_test.replace({
-    "B": 0,
-    "M": 1
-})
-
-y_test = pd.to_numeric(
-    y_test,
-    errors="coerce"
+    .map({
+        "B": 0,
+        "M": 1
+    })
 )
 
 if y_test.isnull().any():
 
     st.error(
-        "Diagnosis contains invalid labels."
+        "Invalid labels detected in Diagnosis column."
     )
 
     st.stop()
 
-# ====================================================
+# =====================================================
 # EVALUATE ALL MODELS
-# ====================================================
+# =====================================================
 comparison_results = []
 
 for model_name, model_path in model_files.items():
 
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
+    try:
+
+        with open(model_path, "rb") as f:
+            model = pickle.load(f)
+
+    except Exception as e:
+
+        st.error(
+            f"Could not load {model_name}\n\n{e}"
+        )
+
+        continue
 
     if model_name in [
         "Logistic Regression",
@@ -235,11 +242,11 @@ for model_name, model_path in model_files.items():
 
         X_eval = X_test
 
-    y_pred = model.predict(
+    y_pred_tmp = model.predict(
         X_eval
     )
 
-    y_prob = model.predict_proba(
+    y_prob_tmp = model.predict_proba(
         X_eval
     )[:, 1]
 
@@ -252,7 +259,7 @@ for model_name, model_path in model_files.items():
             round(
                 accuracy_score(
                     y_test,
-                    y_pred
+                    y_pred_tmp
                 ),
                 4
             ),
@@ -261,7 +268,7 @@ for model_name, model_path in model_files.items():
             round(
                 roc_auc_score(
                     y_test,
-                    y_prob
+                    y_prob_tmp
                 ),
                 4
             ),
@@ -270,7 +277,7 @@ for model_name, model_path in model_files.items():
             round(
                 precision_score(
                     y_test,
-                    y_pred
+                    y_pred_tmp
                 ),
                 4
             ),
@@ -279,7 +286,7 @@ for model_name, model_path in model_files.items():
             round(
                 recall_score(
                     y_test,
-                    y_pred
+                    y_pred_tmp
                 ),
                 4
             ),
@@ -288,7 +295,7 @@ for model_name, model_path in model_files.items():
             round(
                 f1_score(
                     y_test,
-                    y_pred
+                    y_pred_tmp
                 ),
                 4
             ),
@@ -297,15 +304,15 @@ for model_name, model_path in model_files.items():
             round(
                 matthews_corrcoef(
                     y_test,
-                    y_pred
+                    y_pred_tmp
                 ),
                 4
             )
     })
 
-# ====================================================
-# COMPARISON TABLE
-# ====================================================
+# =====================================================
+# MODEL COMPARISON TABLE
+# =====================================================
 comparison_df = pd.DataFrame(
     comparison_results
 )
@@ -316,7 +323,7 @@ comparison_df = comparison_df.sort_values(
 )
 
 st.subheader(
-    "All Models Comparison"
+    "Model Comparison Table"
 )
 
 st.dataframe(
@@ -324,9 +331,9 @@ st.dataframe(
     width="stretch"
 )
 
-# ====================================================
-# SELECTED MODEL DETAILS
-# ====================================================
+# =====================================================
+# LOAD SELECTED MODEL
+# =====================================================
 with open(
     model_files[selected_model],
     "rb"
@@ -346,15 +353,20 @@ else:
 
     X_eval = X_test
 
-y_pred = model.predict(X_eval)
+# =====================================================
+# PREDICTIONS
+# =====================================================
+y_pred = model.predict(
+    X_eval
+)
 
 y_prob = model.predict_proba(
     X_eval
 )[:, 1]
 
-# ====================================================
+# =====================================================
 # METRICS
-# ====================================================
+# =====================================================
 accuracy = accuracy_score(
     y_test,
     y_pred
@@ -385,6 +397,9 @@ mcc = matthews_corrcoef(
     y_pred
 )
 
+# =====================================================
+# DISPLAY METRICS
+# =====================================================
 st.subheader(
     f"Selected Model: {selected_model}"
 )
@@ -392,16 +407,39 @@ st.subheader(
 c1, c2, c3 = st.columns(3)
 c4, c5, c6 = st.columns(3)
 
-c1.metric("Accuracy", f"{accuracy:.4f}")
-c2.metric("AUC", f"{auc:.4f}")
-c3.metric("Precision", f"{precision:.4f}")
-c4.metric("Recall", f"{recall:.4f}")
-c5.metric("F1 Score", f"{f1:.4f}")
-c6.metric("MCC", f"{mcc:.4f}")
+c1.metric(
+    "Accuracy",
+    f"{accuracy:.4f}"
+)
 
-# ====================================================
+c2.metric(
+    "AUC Score",
+    f"{auc:.4f}"
+)
+
+c3.metric(
+    "Precision",
+    f"{precision:.4f}"
+)
+
+c4.metric(
+    "Recall",
+    f"{recall:.4f}"
+)
+
+c5.metric(
+    "F1 Score",
+    f"{f1:.4f}"
+)
+
+c6.metric(
+    "MCC",
+    f"{mcc:.4f}"
+)
+
+# =====================================================
 # CONFUSION MATRIX
-# ====================================================
+# =====================================================
 st.subheader(
     "Confusion Matrix"
 )
@@ -412,16 +450,22 @@ cm = confusion_matrix(
 )
 
 cm_df = pd.DataFrame(
-    cm, index=["Actual B", "Actual M"], columns=["Predicted B", "Predicted M"]
+    cm,
+    index=["Actual B", "Actual M"],
+    columns=[
+        "Predicted B",
+        "Predicted M"
+    ]
 )
 
 st.dataframe(
-    cm_df, width="stretch"
+    cm_df,
+    width="stretch"
 )
 
-# ====================================================
+# =====================================================
 # CLASSIFICATION REPORT
-# ====================================================
+# =====================================================
 st.subheader(
     "Classification Report"
 )
