@@ -23,31 +23,37 @@ from sklearn.metrics import (
 # =====================================================
 # LOAD DATASET
 # =====================================================
-df = pd.read_csv("test_data.csv")
+df = pd.read_csv("test_data_new.csv")
 
 print("Dataset Shape:", df.shape)
-print("\nColumns:")
-print(df.columns.tolist())
 
 # =====================================================
-# DATA PREPROCESSING
+# DROP ID COLUMN IF PRESENT
 # =====================================================
-
-# Drop ID column if present
-for col in ['id', 'ID', 'Id']:
+for col in ["id", "ID", "Id"]:
     if col in df.columns:
         df.drop(columns=[col], inplace=True)
 
-# Target variable
+# =====================================================
+# TARGET COLUMN
+# =====================================================
 target_column = "Diagnosis"
 
-# Convert target values
-df[target_column] = df[target_column].map({
-    "B": 0,
-    "M": 1
-})
+# Convert labels to numeric
+df[target_column] = (
+    df[target_column]
+    .astype(str)
+    .str.strip()
+    .str.upper()
+    .map({
+        "B": 0,
+        "M": 1
+    })
+)
 
-# Features and Target
+# =====================================================
+# FEATURES & TARGET
+# =====================================================
 X = df.drop(columns=[target_column])
 y = df[target_column]
 
@@ -63,6 +69,36 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # =====================================================
+# SAVE TRAIN / TEST CSV
+# =====================================================
+train_data = X_train.copy()
+
+train_data["Diagnosis"] = y_train.map({
+    0: "B",
+    1: "M"
+})
+
+train_data.to_csv(
+    "train_data.csv",
+    index=False
+)
+
+test_data = X_test.copy()
+
+test_data["Diagnosis"] = y_test.map({
+    0: "B",
+    1: "M"
+})
+
+test_data.to_csv(
+    "test_data.csv",
+    index=False
+)
+
+print("train_data.csv created")
+print("test_data.csv created")
+
+# =====================================================
 # FEATURE SCALING
 # =====================================================
 scaler = StandardScaler()
@@ -76,28 +112,39 @@ X_test_scaled = scaler.transform(X_test)
 os.makedirs("models", exist_ok=True)
 
 # Save scaler
-with open("models/scaler.pkl", "wb") as f:
+with open(
+    "models/scaler.pkl",
+    "wb"
+) as f:
     pickle.dump(scaler, f)
 
 # =====================================================
 # MODELS
 # =====================================================
 models = {
+
     "Logistic Regression":
-        LogisticRegression(max_iter=1000),
+        LogisticRegression(
+            max_iter=1000,
+            random_state=42
+        ),
 
     "Decision Tree":
-        DecisionTreeClassifier(random_state=42),
+        DecisionTreeClassifier(
+            random_state=42
+        ),
 
     "KNN":
-        KNeighborsClassifier(n_neighbors=5),
+        KNeighborsClassifier(
+            n_neighbors=5
+        ),
 
     "Naive Bayes":
         GaussianNB(),
 
     "SVM":
         SVC(
-            kernel='rbf',
+            kernel="rbf",
             probability=True,
             random_state=42
         )
@@ -112,12 +159,20 @@ for name, model in models.items():
 
     print(f"\nTraining {name}...")
 
-    # Models requiring scaling
-    if name in ["Logistic Regression", "KNN", "SVM"]:
+    if name in [
+        "Logistic Regression",
+        "KNN",
+        "SVM"
+    ]:
 
-        model.fit(X_train_scaled, y_train)
+        model.fit(
+            X_train_scaled,
+            y_train
+        )
 
-        y_pred = model.predict(X_test_scaled)
+        y_pred = model.predict(
+            X_test_scaled
+        )
 
         y_prob = model.predict_proba(
             X_test_scaled
@@ -125,18 +180,25 @@ for name, model in models.items():
 
     else:
 
-        model.fit(X_train, y_train)
+        model.fit(
+            X_train,
+            y_train
+        )
 
-        y_pred = model.predict(X_test)
+        y_pred = model.predict(
+            X_test
+        )
 
         y_prob = model.predict_proba(
             X_test
         )[:, 1]
 
-    # Evaluation Metrics
-    accuracy = accuracy_score(y_test, y_pred)
+    accuracy = accuracy_score(
+        y_test,
+        y_pred
+    )
 
-    auc = roc_auc_score(
+    auc_score = roc_auc_score(
         y_test,
         y_prob
     )
@@ -161,18 +223,34 @@ for name, model in models.items():
         y_pred
     )
 
-    # Save Results
     results.append({
         "Model": name,
-        "Accuracy": round(accuracy, 4),
-        "AUC Score": round(auc, 4),
-        "Precision": round(precision, 4),
-        "Recall": round(recall, 4),
-        "F1 Score": round(f1, 4),
-        "MCC": round(mcc, 4)
+        "Accuracy": round(
+            accuracy,
+            4
+        ),
+        "AUC Score": round(
+            auc_score,
+            4
+        ),
+        "Precision": round(
+            precision,
+            4
+        ),
+        "Recall": round(
+            recall,
+            4
+        ),
+        "F1 Score": round(
+            f1,
+            4
+        ),
+        "MCC": round(
+            mcc,
+            4
+        )
     })
 
-    # Save Model
     filename = (
         name.lower()
         .replace(" ", "_")
@@ -183,10 +261,14 @@ for name, model in models.items():
         f"models/{filename}",
         "wb"
     ) as f:
-        pickle.dump(model, f)
+
+        pickle.dump(
+            model,
+            f
+        )
 
 # =====================================================
-# RESULTS TABLE
+# SAVE RESULTS
 # =====================================================
 results_df = pd.DataFrame(results)
 
@@ -195,16 +277,23 @@ results_df = results_df.sort_values(
     ascending=False
 )
 
-print("\n==============================")
-print("MODEL COMPARISON")
-print("==============================")
-print(results_df)
-
-# Save results for Streamlit
 results_df.to_csv(
     "results.csv",
     index=False
 )
 
-print("\nResults saved to results.csv")
-print("Models saved in models/ folder")
+# =====================================================
+# DISPLAY RESULTS
+# =====================================================
+print("\n==============================")
+print("MODEL COMPARISON TABLE")
+print("==============================")
+
+print(results_df)
+
+print("\nFiles Generated Successfully:")
+print("✔ train_data.csv")
+print("✔ test_data.csv")
+print("✔ results.csv")
+print("✔ models/scaler.pkl")
+print("✔ 5 trained model files")
